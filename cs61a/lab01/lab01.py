@@ -65,4 +65,4 @@ def double_eights(n):
         n2 = n1
         n = n // 10
     return False
-        
+
