@@ -168,20 +168,12 @@ def play(
             score1 = score1 + take_turn(roll1, score0, dice, goal)
             if not more_boar(score1, score0):
                 who = next_player(who)
-    # while score0 < goal and score1 < goal:
-    #     if who == 0:
-    #         score0 += take_turn(strategy0(score0, score1), score1, dice, goal)
-    #         if not more_boar(score0, score1):
-    #             who = next_player(who)
-    # else:
-    #     score1 += take_turn(strategy1(score1, score0), score0, dice, goal)
-    #     if not more_boar(score1, score0):
-    #         who = next_player(who)
+
 
     # END PROBLEM 5
     # (note that the indentation for the problem 6 prompt (***YOUR CODE HERE***) might be misleading)
     # BEGIN PROBLEM 6
-    "*** YOUR CODE HERE ***"
+        say=say(score0,score1)
     # END PROBLEM 6
     return score0, score1
 
