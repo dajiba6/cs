@@ -23,15 +23,12 @@ def roll_dice(num_rolls, dice=six_sided):
     # BEGIN PROBLEM 1
     k = 0
     res = 0
-    one_flag = False
     while k < num_rolls:
         roll = dice()
         res = res + roll
         if roll == 1:
-            one_flag = True
+            return 1
         k += 1
-    if one_flag == True:
-        return 1
     else:
         return res
 
@@ -169,11 +166,10 @@ def play(
             if not more_boar(score1, score0):
                 who = next_player(who)
 
-
-    # END PROBLEM 5
-    # (note that the indentation for the problem 6 prompt (***YOUR CODE HERE***) might be misleading)
-    # BEGIN PROBLEM 6
-        say=say(score0,score1)
+        # END PROBLEM 5
+        # (note that the indentation for the problem 6 prompt (***YOUR CODE HERE***) might be misleading)
+        # BEGIN PROBLEM 6
+        say = say(score0, score1)
     # END PROBLEM 6
     return score0, score1
 
@@ -261,7 +257,41 @@ def announce_highest(who, last_score=0, running_high=0):
     """
     assert who == 0 or who == 1, "The who argument should indicate a player."
     # BEGIN PROBLEM 7
-    "*** YOUR CODE HERE ***"
+    h0 = 0
+    h1 = 1
+    max_gain0 = 0
+    max_gain1 = 0
+
+    def say_high(s0, s1):
+        h00 = h0
+        h11 = h1
+        max_gain00 = max_gain0
+        max_gain11 = max_gain1
+        if who == 0:
+            gain0 = s0 - h00
+            h00 = s0
+            if gain0 > max_gain00:
+                max_gain00 = gain0
+                print(
+                    "player 0 has reached a new maximum point gain. ",
+                    max_gain00,
+                    " point(s)!",
+                )
+
+        if who == 1:
+            gain1 = s1 - h11
+            h11 = s1
+            if gain1 > max_gain11:
+                max_gain11 = gain1
+                print(
+                    "player 1 has reached a new maximum point gain. ",
+                    max_gain11,
+                    " point(s)!",
+                )
+        return announce_highest
+
+    return say_high
+
     # END PROBLEM 7
 
 
