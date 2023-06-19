@@ -126,6 +126,12 @@ def get_next_coin(coin):
         return 10
     elif coin == 10:
         return 25
+    # if coin == 5:
+    #     return 1
+    # elif coin == 10:
+    #     return 5
+    # elif coin == 25:
+    #     return 10
 
 
 def count_coins(change):
