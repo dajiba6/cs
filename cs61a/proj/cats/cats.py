@@ -141,7 +141,26 @@ def autocorrect(typed_word, valid_words, diff_function, limit):
     'testing'
     """
     # BEGIN PROBLEM 5
-    "*** YOUR CODE HERE ***"
+
+    # min = limit + 1
+    # if typed_word in valid_words:
+    #     return typed_word
+    # for word in valid_words:
+    #     score = diff_function(typed_word, word, limit)
+    #     if score < min:
+    #         min = score
+    #         word_return = word
+    # if min > limit:
+    #     return typed_word
+    # return word_return
+
+    if typed_word in valid_words:
+        return typed_word
+    diff_list = [[diff_function(typed_word, vw, limit), vw] for vw in valid_words]
+    if min(diff_list, key=lambda item: item[0])[0] <= limit:
+        return min(diff_list, key=lambda item: item[0])[1]
+    else:
+        return typed_word
     # END PROBLEM 5
 
 
@@ -168,7 +187,17 @@ def sphinx_switches(start, goal, limit):
     5
     """
     # BEGIN PROBLEM 6
-    assert False, "Remove this line"
+    if start == goal:
+        return 0
+    if len(goal) < len(start):
+        return sphinx_switches(goal, start, limit)
+    if len(start) == 0:
+        return len(goal)
+    if start[0] != goal[0]:
+        if limit == 0:
+            return 1
+        return sphinx_switches(start[1:], goal[1:], limit - 1) + 1
+    return sphinx_switches(start[1:], goal[1:], limit)
     # END PROBLEM 6
 
 
