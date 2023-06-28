@@ -9,8 +9,7 @@ test = {
           >>> typed = ['I', 'have', 'begun']
           >>> prompt = ['I', 'have', 'begun', 'to', 'type']
           >>> print_progress({'id': 1, 'progress': 0.6})
-          f682e694793749a049e13173b1687ecf
-          # locked
+          ID: 1 Progress: 0.6
           >>> report_progress(typed, prompt, 1, print_progress) # print_progress is called on the report
           f682e694793749a049e13173b1687ecf
           e1cf4b4f699ed1337e6416feb56d423b

@@ -218,24 +218,29 @@ def pawssible_patches(start, goal, limit):
     >>> pawssible_patches("ckiteus", "kittens", big_limit) # ckiteus -> kiteus -> kitteus -> kittens
     3
     """
-    assert False, "Remove this line"
 
-    if ______________:  # Fill in the condition
+    if limit < 0:  # Fill in the condition
         # BEGIN
-        "*** YOUR CODE HERE ***"
+        return 0
         # END
 
-    elif ___________:  # Feel free to remove or add additional cases
+    if not start and not goal:
+        return 0
+
+    elif not start or not goal:  # Feel free to remove or add additional cases
         # BEGIN
-        "*** YOUR CODE HERE ***"
+        return abs(len(start) - len(goal))
         # END
+
+    elif start[0] == goal[0]:
+        return pawssible_patches(start[1:], goal[1:], limit)
 
     else:
-        add = ...  # Fill in these lines
-        remove = ...
-        substitute = ...
+        add = pawssible_patches(start, goal[1:], limit - 1)  # Fill in these lines
+        remove = pawssible_patches(start[1:], goal, limit - 1)
+        substitute = pawssible_patches(start[1:], goal[1:], limit - 1)
         # BEGIN
-        "*** YOUR CODE HERE ***"
+        return min(add, remove, substitute) + 1
         # END
 
 
