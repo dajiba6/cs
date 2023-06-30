@@ -282,7 +282,16 @@ def report_progress(typed, prompt, user_id, send):
     0.2
     """
     # BEGIN PROBLEM 8
-    "*** YOUR CODE HERE ***"
+    correct_words = 0.0
+    for i in range(len(typed)):
+        if typed[i] != prompt[i]:
+            break
+        else:
+            correct_words += 1
+    progress = correct_words / len(prompt)
+    progress_dict = {"id": user_id, "progress": progress}
+    send(progress_dict)
+    return progress
     # END PROBLEM 8
 
 
