@@ -130,10 +130,11 @@ class Ant(Insect):
             place.ant = self
         else:
             # BEGIN Problem 8
-            if (place.ant.can_contain(self) and not self.is_container) or (
-                not place.ant.can_contain(self) and self.is_container
-            ):
-                place.ant = [place.ant, self]
+            if place.ant.can_contain(self) and place.ant.contained_ant is None:
+                place.ant.contain_ant(self)
+            elif self.is_container() and self.can_contain(place.ant):
+                self.contain_ant(place.ant)
+                place.ant = self
             else:
                 assert place.ant is None, "Two ants in {0}".format(place)
             # END Problem 8
@@ -347,13 +348,13 @@ class ContainerAnt(Ant):
 
     def can_contain(self, other):
         # BEGIN Problem 8
-        if self.contain_ant == None and not other.is_container():
+        if self.contained_ant == None and not other.is_container():
             return True
         # END Problem 8
 
     def contain_ant(self, ant):
         # BEGIN Problem 8
-        self.contain_ant = ant
+        self.contained_ant = ant
         # END Problem 8
 
     def remove_ant(self, ant):
