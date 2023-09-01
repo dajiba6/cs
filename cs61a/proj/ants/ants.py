@@ -130,7 +130,12 @@ class Ant(Insect):
             place.ant = self
         else:
             # BEGIN Problem 8
-            assert place.ant is None, "Two ants in {0}".format(place)
+            if (place.ant.can_contain(self) and not self.is_container) or (
+                not place.ant.can_contain(self) and self.is_container
+            ):
+                place.ant = [place.ant, self]
+            else:
+                assert place.ant is None, "Two ants in {0}".format(place)
             # END Problem 8
         Insect.add_to(self, place)
 
@@ -291,11 +296,44 @@ class FireAnt(Ant):
 
 
 # BEGIN Problem 6
-# The WallAnt class
+class WallAnt(Ant):
+    """WallAnt block those motherfucker bee outside."""
+
+    name = "Wall"
+    food_cost = 4
+    implemented = True
+
+    def __init__(self, health=4):
+        """Create an Ant with a HEALTH quantity."""
+        super().__init__(health)
+
+
 # END Problem 6
 
+
 # BEGIN Problem 7
-# The HungryAnt Class
+class HungryAnt(Ant):
+    """Hungry Ant is H-U-N-G-R-Y!"""
+
+    name = "Hungry"
+    food_cost = 4
+    implemented = True
+    chew_duration = 3
+
+    def __init__(self, health=1):
+        super().__init__(health)
+        self.chewing = 0
+
+    def action(self, gamestate):
+        if self.chewing != 0:
+            self.chewing -= 1
+        else:
+            target = bee_selector(self.place.bees)
+            if target != None:
+                target.reduce_health(target.health)
+                self.chewing = HungryAnt.chew_duration
+
+
 # END Problem 7
 
 
@@ -309,12 +347,13 @@ class ContainerAnt(Ant):
 
     def can_contain(self, other):
         # BEGIN Problem 8
-        "*** YOUR CODE HERE ***"
+        if self.contain_ant == None and not other.is_container():
+            return True
         # END Problem 8
 
     def contain_ant(self, ant):
         # BEGIN Problem 8
-        "*** YOUR CODE HERE ***"
+        self.contain_ant = ant
         # END Problem 8
 
     def remove_ant(self, ant):
@@ -334,7 +373,8 @@ class ContainerAnt(Ant):
 
     def action(self, gamestate):
         # BEGIN Problem 8
-        "*** YOUR CODE HERE ***"
+        if self.contained_ant is not None:
+            self.contained_ant.action(gamestate)
         # END Problem 8
 
 
@@ -345,7 +385,11 @@ class BodyguardAnt(ContainerAnt):
     food_cost = 4
     # OVERRIDE CLASS ATTRIBUTES HERE
     # BEGIN Problem 8
-    implemented = False  # Change to True to view in the GUI
+    implemented = True  # Change to True to view in the GUI
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs, health=2)
+
     # END Problem 8
 
 
