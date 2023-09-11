@@ -85,15 +85,12 @@ def store_digits(n):
     >>> print("Do not use str or reversed!") if any([r in cleaned for r in ["str", "reversed"]]) else None
     """
     "*** YOUR CODE HERE ***"
-    # l = Link.empty
-    # while n > 9:
-    #     left = n % 10
-    #     n = n // 10
-    #     left = Link(l.rest)
-    if n < 9:
-        return Link(n)
-
-    return Link(store_digits(n // 10), store_digits(n % 10))
+    l = Link.empty
+    while n > 0:
+        left = n % 10
+        n = n // 10
+        l = Link(left, l)
+    return l
 
 
 def path_yielder(t, value):
@@ -132,10 +129,12 @@ def path_yielder(t, value):
     """
 
     "*** YOUR CODE HERE ***"
-
-    for _______________ in _________________:
-        for _______________ in _________________:
+    if t.label == value:
+        yield [value]
+    for b in t.branches:
+        for path in path_yielder(b, value):
             "*** YOUR CODE HERE ***"
+            yield [t.label] + path
 
 
 class Mint:
@@ -175,9 +174,11 @@ class Mint:
 
     def create(self, kind):
         "*** YOUR CODE HERE ***"
+        return kind(self.year)
 
     def update(self):
         "*** YOUR CODE HERE ***"
+        self.year = self.current_year
 
 
 class Coin:
@@ -186,6 +187,10 @@ class Coin:
 
     def worth(self):
         "*** YOUR CODE HERE ***"
+        if self.year == Mint.current_year:
+            return self.cents
+        else:
+            return self.cents + Mint.current_year - self.year - 50
 
 
 class Nickel(Coin):
