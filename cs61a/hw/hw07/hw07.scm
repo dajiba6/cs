@@ -17,15 +17,12 @@
 
 
 ; expect (0 2 8)
+
 (define (interleave first second)
-  (cond
-    ((null? second) first)
-    (else 
-      (cons (list (car first) (car second))
-            (interleave (cdr first) (cdr second)))
-    )
-  )
-)
+  (cond ((null? first) second ) 
+        (else (cons (car first) (interleave second (cdr first))))
+  ))
+
 
 (interleave (list 1 5 3) (list 2 4 6))
 
