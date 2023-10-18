@@ -34,6 +34,18 @@
 
 ; expect (1 2 3 4 5)
 (define (accumulate combiner start n term)
-  'YOUR-CODE-HERE)
+  (cond ((= n 0) start )
+        (else (accumulate combiner (combiner (term n) start) (- n 1) term))
+        )
+)
 
-(define (without-duplicates lst) 'YOUR-CODE-HERE)
+(define (without-duplicates lst) 
+  (if (null? lst) lst
+    (cons (car lst)
+      (without-duplicates (filter (lambda (x) (not (= x (car lst))))  (cdr lst))
+
+      )
+    )
+  )
+)
+
