@@ -5,18 +5,18 @@ test = {
     {
       'cases': [
         {
-          'answer': '81b67964e20b57f553422bbd313c85c5',
+          'answer': 'Read-Eval-Print-Loop',
           'choices': [
             'Read-Eval-Print-Loop',
             'Really-Enormous-Purple-Llamas',
             'Read-Eval-Parse-Lex'
           ],
           'hidden': False,
-          'locked': True,
+          'locked': False,
           'question': 'What does REPL stand for?'
         },
         {
-          'answer': 'a4e01a29d9a0b0c8e9107b74dd807ac5',
+          'answer': 'Turns input into a useful data structure',
           'choices': [
             'Evaluates call expressions',
             'Turns input into tokens',
@@ -24,7 +24,7 @@ test = {
             'Turns input into a useful data structure'
           ],
           'hidden': False,
-          'locked': True,
+          'locked': False,
           'question': 'What does the read component of the REPL loop do?'
         },
         {
