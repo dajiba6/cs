@@ -28,11 +28,7 @@ test = {
           'question': 'What does the read component of the REPL loop do?'
         },
         {
-<<<<<<< HEAD
           'answer': 'Input expression represented as a list of tokens',
-=======
-          'answer': 'd621ac3d7afedf9fc29b1046d4da72d0',
->>>>>>> refs/remotes/origin/main
           'choices': [
             'Input expression with corrected number of parentheses',
             'Input expression represented as a list of tokens',
@@ -40,19 +36,11 @@ test = {
             'Result of evaluating the input expression'
           ],
           'hidden': False,
-<<<<<<< HEAD
           'locked': False,
           'question': 'What does the tokenize function in reader.py return?'
         },
         {
           'answer': "['add', '(', 3, ',', 4, ')']",
-=======
-          'locked': True,
-          'question': 'What does the tokenize function in reader.py return?'
-        },
-        {
-          'answer': '1c4c11f7578dd660bcfbb5fe04820e0f',
->>>>>>> refs/remotes/origin/main
           'choices': [
             "['add', '(', 3, ',', 4, ')']",
             "['a', 'd', 'd', '(', '3', ',', '4', ')']",
@@ -60,19 +48,11 @@ test = {
             "['a', 'd', 'd', '(', 3, ',', 4, ')']"
           ],
           'hidden': False,
-<<<<<<< HEAD
           'locked': False,
           'question': "What will tokenize('add(3, 4)') output?"
         },
         {
           'answer': "['(', 'lambda', ':', 4, ')', '(', ')']",
-=======
-          'locked': True,
-          'question': "What will tokenize('add(3, 4)') output?"
-        },
-        {
-          'answer': 'b90867580f1fc548700d306e8eb6aaac',
->>>>>>> refs/remotes/origin/main
           'choices': [
             "['(', LambdaExpr, 4, ')', '(', ')']",
             "['lambda', 4, '(', ')']",
@@ -80,11 +60,7 @@ test = {
             "['(', LambdaExpr, ':', 4, ')', '(', ')']"
           ],
           'hidden': False,
-<<<<<<< HEAD
           'locked': False,
-=======
-          'locked': True,
->>>>>>> refs/remotes/origin/main
           'question': "What will tokenize('(lambda: 4)()') output?"
         },
         {
