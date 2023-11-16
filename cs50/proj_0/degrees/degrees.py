@@ -24,7 +24,7 @@ def load_data(directory):
             people[row["id"]] = {
                 "name": row["name"],
                 "birth": row["birth"],
-                "movies": set()
+                "movies": set(),
             }
             if row["name"].lower() not in names:
                 names[row["name"].lower()] = {row["id"]}
@@ -38,7 +38,7 @@ def load_data(directory):
             movies[row["id"]] = {
                 "title": row["title"],
                 "year": row["year"],
-                "stars": set()
+                "stars": set(),
             }
 
     # Load stars
@@ -91,9 +91,64 @@ def shortest_path(source, target):
 
     If no possible path, returns None.
     """
+    # source_id = person_id_for_name(source)
+    # target_id = person_id_for_name(target)
+    # person_frontier = QueueFrontier()
+    # explored_nodes = []
 
-    # TODO
-    raise NotImplementedError
+    # person_frontier.add(source_id)
+
+    # while not person_frontier.empty():
+    #     current_person = person_frontier.remove()
+    #     explored_nodes.append(current_person)
+    #     if current_person[1] == target_id:
+    #         return explored_nodes
+    #     neighbors = neighbors_for_person(current_person)
+    #     if len(neighbors) == 0:
+    #         explored_nodes.pop()
+    #     else:
+    #         for person in neighbors:
+    #             person_frontier.add(person)
+
+    # return None
+
+    # For keeping track of how many nodes have been explored
+    num_explored = 0
+
+    start = Node(state=source, parent=None, action=None)
+    frontier = QueueFrontier()
+    frontier.add(start)
+
+    # Set of explored actors
+    explored = set()
+
+    while True:
+        # If nothing left in frontier, then no path
+        if frontier.empty():
+            return None
+
+        node = frontier.remove()
+        # print(f"Exploring {node.state}")
+        num_explored += 1
+
+        # Mark actor (node) as explored
+        explored.add(node.state)
+        # Find the neighbors (actors to which he can connect) of the actor
+        neighbors = neighbors_for_person(node.state)
+        for movie, actor in neighbors:
+            if actor not in explored and not frontier.contains_state(actor):
+                child = Node(state=actor, parent=node, action=movie)
+                if child.state == target:
+                    # Return list of tuples (movie_id, actor_id)
+                    path = []
+                    node = child
+                    while node.parent is not None:
+                        path.append((node.action, node.state))
+                        node = node.parent
+
+                    path.reverse()
+                    return path
+                frontier.add(child)
 
 
 def person_id_for_name(name):
