@@ -28,7 +28,7 @@ test = {
           'question': 'What does the read component of the REPL loop do?'
         },
         {
-          'answer': 'd621ac3d7afedf9fc29b1046d4da72d0',
+          'answer': 'Input expression represented as a list of tokens',
           'choices': [
             'Input expression with corrected number of parentheses',
             'Input expression represented as a list of tokens',
@@ -36,11 +36,11 @@ test = {
             'Result of evaluating the input expression'
           ],
           'hidden': False,
-          'locked': True,
+          'locked': False,
           'question': 'What does the tokenize function in reader.py return?'
         },
         {
-          'answer': '1c4c11f7578dd660bcfbb5fe04820e0f',
+          'answer': "['add', '(', 3, ',', 4, ')']",
           'choices': [
             "['add', '(', 3, ',', 4, ')']",
             "['a', 'd', 'd', '(', '3', ',', '4', ')']",
@@ -48,11 +48,11 @@ test = {
             "['a', 'd', 'd', '(', 3, ',', 4, ')']"
           ],
           'hidden': False,
-          'locked': True,
+          'locked': False,
           'question': "What will tokenize('add(3, 4)') output?"
         },
         {
-          'answer': 'b90867580f1fc548700d306e8eb6aaac',
+          'answer': "['(', 'lambda', ':', 4, ')', '(', ')']",
           'choices': [
             "['(', LambdaExpr, 4, ')', '(', ')']",
             "['lambda', 4, '(', ')']",
@@ -60,7 +60,7 @@ test = {
             "['(', LambdaExpr, ':', 4, ')', '(', ')']"
           ],
           'hidden': False,
-          'locked': True,
+          'locked': False,
           'question': "What will tokenize('(lambda: 4)()') output?"
         },
         {
