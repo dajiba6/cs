@@ -10,8 +10,8 @@ private:
   double count_ = 0;
   vector<double> data_;
   int dataLength_;
-  double tau_ = 2;
-  double c_ = 0.5;
+  double tau_ = 3;
+  double c_ = 0.3;
 
 public:
   Rosenbrock(vector<double> data) : data_(data), dataLength_(data.size())
@@ -66,11 +66,11 @@ public:
     double res = Calculate(input);
 
     int times = 0;
-    while (res > 0.001)
+    while (res > 0.00001)
     {
       input = Armijo(input);
       res = Calculate(input);
-      // cout << res << endl;
+      cout << res << " " << times << endl;
       // for (size_t i = 0; i < input.size(); i++)
       // {
       //   cout << input[i] << " ";
@@ -126,16 +126,16 @@ int main()
   double input;
   vector<double> numbers;
   char continueInput;
-  do
-  {
-    std::cout << "push one number to input: ";
-    std::cin >> input;
-    numbers.push_back(input);
-    std::cout << "continue pushing?(y/n): ";
-    std::cin >> continueInput;
+  // do
+  // {
+  //   std::cout << "push one number to input: ";
+  //   std::cin >> input;
+  //   numbers.push_back(input);
+  //   std::cout << "continue pushing?(y/n): ";
+  //   std::cin >> continueInput;
 
-  } while (continueInput == 'y' || continueInput == 'Y');
-
+  // } while (continueInput == 'y' || continueInput == 'Y');
+  numbers = {2, 2, 10, 9, 9, 90};
   Rosenbrock r(numbers);
 
   double res = r.Calculate(numbers);
