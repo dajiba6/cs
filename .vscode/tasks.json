@@ -7,9 +7,8 @@
       "command": "/usr/bin/g++",
       "args": [
         "-std=c++17",
-        "-stdlib=libc++",
         "-fdiagnostics-color=always",
-        // "-g",
+        "-g",
         "${file}",
         "-o",
         "${fileDirname}/${fileBasenameNoExtension}"

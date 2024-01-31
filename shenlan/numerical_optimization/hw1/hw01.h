@@ -1,7 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
-
+#include <algorithm>
 using namespace std;
 class Rosenbrock
 {
@@ -12,6 +12,7 @@ private:
   int dataLength_;
   double tau_ = 2;
   double c_ = 0.5;
+  double gradient_limit_ = 10e-5;
 
 public:
   Rosenbrock(vector<double> data) : data_(data), dataLength_(data.size())
@@ -21,7 +22,10 @@ public:
       cout << "Wrong data size!";
     }
     else
+    {
       cout << dataLength_ << " dimension imput loaded." << endl;
+      cout << "gradient limit is " << gradient_limit_ << endl;
+    }
   }
 
   double Fx(double x1, double x2)
@@ -64,18 +68,14 @@ public:
 
     vector<double> input = data_;
     double res = Calculate(input);
-
+    vector<double> gradient = Gradient(input);
     int times = 0;
-    while (res > 0.001)
+    while (any_of(gradient.begin(), gradient.end(), [this](double num)
+                  { return num > gradient_limit_; }))
     {
-      input = Armijo(input);
+      gradient = Gradient(input);
+      input = Armijo(input, gradient);
       res = Calculate(input);
-      // cout << res << endl;
-      // for (size_t i = 0; i < input.size(); i++)
-      // {
-      //   cout << input[i] << " ";
-      // }
-      // cout << endl;
       times++;
     }
 
@@ -90,17 +90,17 @@ public:
     return res;
   }
 
-  vector<double> Armijo(vector<double> &input)
+  vector<double> Armijo(vector<double> &input, vector<double> &gradient)
   {
 
-    vector<double> direct(input.size(), 0);
+    vector<double> direction(input.size(), 0);
     vector<double> new_input(input.size(), 0);
     double temp_res = 0;
     double cal_in = Calculate(input);
-    direct = Gradient(input);
+    direction = gradient;
     for (int i = 0; i < input.size(); i++)
     {
-      temp_res += -direct[i] * direct[i];
+      temp_res += -direction[i] * direction[i];
     }
     double tau = tau_;
     do
@@ -109,14 +109,9 @@ public:
 
       for (int i = 0; i < input.size(); i++)
       {
-        new_input[i] = input[i] + (tau * -direct[i]);
+        new_input[i] = input[i] + (tau * -direction[i]);
       }
     } while (Calculate(new_input) > cal_in + (c_ * tau * temp_res));
-
-    // for (size_t i = 0; i < input.size(); i++)
-    // {
-    //   cout << new_input[i] << " ";
-    // }
     return new_input;
   }
 };
