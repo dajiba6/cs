@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/LU>
+#include <fstream>
+
 using namespace std;
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
@@ -14,13 +16,15 @@ private:
   double count_ = 0;
   VectorXd data_;
   int dataLength_;
-  double tau_ = 4;
+  double tau_ = 10;
   double c_ = 0.5;
   double gradient_limit_ = 10e-5;
   // 0:gradiant, 1:newton
   int mode_ = 1;
 
 public:
+  vector<vector<double>> plot_gradient_;
+
   Rosenbrock(VectorXd data, int mode) : data_(data), dataLength_(data.size()), mode_(mode)
   {
     if (dataLength_ % 2 != 0)
@@ -104,15 +108,21 @@ public:
       temp << a, b, c, d;
       direct.block(i, i, 2, 2) = temp;
     }
-    cout << "hessian:" << endl;
-    cout << direct << endl;
+    // cout << "hessian:" << endl;
+    // cout << direct << endl;
     return direct;
   }
 
-  VectorXd NewtonMethod(VectorXd &input, VectorXd &gradient)
+  VectorXd NewtonMethod(VectorXd &input, VectorXd gradient)
   {
     MatrixXd hessian = Hessian(input);
-    return -1 * hessian.inverse() * gradient;
+    // print if hessian is PD
+    if (gradient.transpose() * hessian.inverse() * gradient < 0)
+      cout << "hessian is not PD:"
+           << gradient.transpose() * hessian.inverse() * gradient
+           << endl;
+
+    return -hessian.inverse() * gradient;
   }
 
   VectorXd UpdateInput_armijo(VectorXd &input, VectorXd &gradient)
@@ -140,21 +150,52 @@ public:
     }
 
     double tau = tau_;
+    int temp11 = 0;
+    double con1 = 0;
+    double con2 = 0;
     do
     {
-      tau = tau / 2;
-      for (int i = 0; i < input.size(); i++)
+      temp11++;
+      tau = tau * 0.5;
+      // cout << "gradient:\n"
+      //      << gradient << endl;
+      VectorXd d = tau * direction;
+
+      new_input = input + d;
+
+      // 打开一个输出文件流
+      std::ofstream outputFile("output.txt", std::ios::app);
+
+      // 将梯度信息写入文件
+      if (outputFile.is_open())
       {
-        new_input(i) = input(i) + (tau * direction(i));
+        for (int i = 0; i < dataLength_; i++)
+        {
+          outputFile << new_input(i) << " ";
+        }
+        outputFile << "\n";
       }
-      // cout << "new:" << Calculate(new_input) << " ;old:" << cal_in << endl;
-      // cout << "new input in:" << new_input << endl;
-    } while (Calculate(new_input) > cal_in + (c_ * tau * temp_res));
-    // cout << "new input:" << new_input << endl;
+      else
+      {
+        std::cerr << "无法打开输出文件。\n";
+      }
+
+      // 关闭文件流
+      outputFile.close();
+
+      con1 = Calculate(new_input);
+      con2 = cal_in + (c_ * tau * temp_res);
+      // cout << "test:" << cal_in + c_ * tau * temp_res << endl;
+      // if (con2 != con1)
+      //   cout << temp11 << "| new:" << Calculate(new_input) << " ;old:" << cal_in << endl;
+    } while (con1 > con2);
+    cout << "gradient:\n"
+         << gradient << endl;
+
     return new_input;
   }
 
-  double Minimization()
+  bool Minimization()
   {
 
     VectorXd input = data_;
@@ -167,7 +208,7 @@ public:
       input = UpdateInput_armijo(input, gradient);
 
       res = Calculate(input);
-      // cout << "out: " << res;
+      // cout << "No.:" << times << "  out: " << res << endl;
       times++;
     }
 
@@ -185,6 +226,6 @@ public:
     cout << endl;
     cout << "==================================" << endl;
     cout << "After " << times << " iteration, result = " << res << endl;
-    return res;
+    return true;
   }
 };
