@@ -1,32 +1,50 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+# 从文件读取数据
+with open("output.txt", "r") as file:
+    lines = file.readlines()
 
-def read_file(file_path):
-    data = np.loadtxt(file_path)
-    return data[:, 0], data[:, 1]
+# 将字符串数据转换为NumPy数组
+data_array = np.array([list(map(float, line.strip().split())) for line in lines])
 
-
-def plot_scatter(file_a, file_b):
-    x_a, y_a = read_file(file_a)
-    x_b, y_b = read_file(file_b)
-
-    plt.plot(x_a, y_a, label="File A", marker="o", linestyle="-", linewidth=1)
-    # plt.plot(x_b, y_b, label="File B", marker="x", linestyle="-", linewidth=1)
-
-    # 在点 (1, 1) 处标记一个红点
-    plt.scatter(1, 1, color="red", marker="o", s=200, label="Point (1, 1)")
-    # plt.scatter(x_b[0], y_b[0], color="green", marker="o", s=100, label="Point (1, 2)")
-
-    plt.xlabel("X-axis")
-    plt.ylabel("Y-axis")
-    plt.title("Scatter Plot of File A and File B")
-    plt.legend()
-    plt.show()
+# 分类数据
+class_0 = data_array[data_array[:, 0] == 0]
+class_1 = data_array[data_array[:, 0] == 1]
 
 
-if __name__ == "__main__":
-    file_a_path = "./output1.txt"  # 替换为文件a的实际路径
-    file_b_path = "./output2.txt"  # 替换为文件b的实际路径
+# Rosenbrock函数
+def rosenbrock(x, y):
+    a = 1
+    b = 100
+    return (x - 1) ** 2 + b * (x**2 - y) ** 2
 
-    plot_scatter(file_a_path, file_b_path)
+
+# 生成坐标网格
+x = np.linspace(-2, 2, 100)
+y = np.linspace(-1, 3, 100)
+X, Y = np.meshgrid(x, y)
+Z = rosenbrock(X, Y)
+
+# 绘制等高线图
+plt.contour(X, Y, Z, levels=np.logspace(-1, 3, 10), cmap="viridis")
+
+
+# 绘制散点图
+plt.plot(class_0[:, 1], class_0[:, 2], label="Class 0")
+plt.plot(class_1[:, 1], class_1[:, 2], label="Class 1")
+# 在1,1坐标处绘制一个大红点
+plt.scatter(1, 1, color="red", s=80, marker="o", label="end Point")
+plt.scatter(
+    class_0[0, 1], class_0[0, 2], color="green", s=80, marker="o", label="start Point"
+)
+# 添加标题和标签
+plt.title("Scatter Plot of Class 0 and Class 1")
+plt.xlabel("X-axis")
+plt.ylabel("Y-axis")
+
+# 显示图例
+plt.legend()
+
+# 显示图表
+plt.show()

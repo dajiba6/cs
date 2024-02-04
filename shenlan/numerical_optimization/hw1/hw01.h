@@ -16,13 +16,14 @@ private:
   double count_ = 0;
   VectorXd data_;
   int dataLength_;
-  double tau_ = 10;
-  double c_ = 0.5;
+
   double gradient_limit_ = 10e-5;
   // 0:gradiant, 1:newton
   int mode_ = 1;
 
 public:
+  double tau_ = 0.1;
+  double c_ = 0.5;
   vector<vector<double>> plot_gradient_;
 
   Rosenbrock(VectorXd data, int mode) : data_(data), dataLength_(data.size()), mode_(mode)
@@ -43,7 +44,7 @@ public:
     return 100 * pow(x1 * x1 - x2, 2) + pow(x1 - 1, 2);
   }
 
-  double DotFxX1(double x1, double x2) { return 100 * (4 * x1 * (x1 * x1 - x2)) + 2 * (x1 - 1); }
+  double DotFxX1(double x1, double x2) { return -2 * (1 - x1) + 200 * (x2 - x1 * x1) * (-2 * x1); }
 
   double DotFxx2(double x1, double x2) { return -200 * (x1 * x1 - x2); }
 
@@ -96,33 +97,27 @@ public:
     MatrixXd direct = Eigen::MatrixXd::Zero(input.size(), input.size());
     for (int i = 0; i < dataLength_; i += 2)
     {
-      double a =
-          DotFxx1x1(input[i], input[i + 1]);
-      double b =
-          DotFxx1x2(input[i], input[i + 1]);
-      double c =
-          DotFxx2x1(input[i], input[i + 1]);
-      double d =
-          DotFxx2x2(input[i], input[i + 1]);
-      MatrixXd temp(2, 2);
-      temp << a, b, c, d;
-      direct.block(i, i, 2, 2) = temp;
+      direct(i, i) = DotFxx1x1(input[i], input[i + 1]);
+      direct(i, i + 1) = DotFxx1x2(input[i], input[i + 1]);
+      direct(i + 1, i) = DotFxx2x1(input[i], input[i + 1]);
+      direct(i + 1, i + 1) = DotFxx2x2(input[i], input[i + 1]);
     }
     // cout << "hessian:" << endl;
     // cout << direct << endl;
     return direct;
   }
 
-  VectorXd NewtonMethod(VectorXd &input, VectorXd gradient)
+  VectorXd NewtonMethod(VectorXd &input, VectorXd &gradient)
   {
     MatrixXd hessian = Hessian(input);
-    // print if hessian is PD
-    if (gradient.transpose() * hessian.inverse() * gradient < 0)
-      cout << "hessian is not PD:"
-           << gradient.transpose() * hessian.inverse() * gradient
-           << endl;
-
-    return -hessian.inverse() * gradient;
+    // // print if hessian is PD
+    // if (gradient.transpose() * hessian.inverse() * gradient < 0)
+    //   cout << "hessian is not PD:"
+    //        << gradient.transpose() * hessian.inverse() * gradient
+    //        << endl;
+    VectorXd direction = hessian.inverse() * gradient;
+    direction = hessian.colPivHouseholderQr().solve(gradient);
+    return direction;
   }
 
   VectorXd UpdateInput_armijo(VectorXd &input, VectorXd &gradient)
@@ -132,15 +127,13 @@ public:
     VectorXd new_input = VectorXd::Zero(input.size());
     double temp_res = 0;
     double cal_in = Calculate(input);
-    for (int i = 0; i < input.size(); i++)
-    {
-      temp_res += -gradient[i] * gradient[i];
-    }
+
+    temp_res = -gradient.transpose() * gradient;
 
     switch (mode_)
     {
     case 0:
-      direction = -gradient;
+      direction = gradient;
       break;
     case 1:
       direction = NewtonMethod(input, gradient);
@@ -161,37 +154,62 @@ public:
       //      << gradient << endl;
       VectorXd d = tau * direction;
 
-      new_input = input + d;
+      new_input = input - d;
+      // //=============================================================
+      // // 打开一个输出文件流
+      // std::ofstream outputFile("output.txt", std::ios::app);
 
-      // 打开一个输出文件流
-      std::ofstream outputFile("output.txt", std::ios::app);
+      // // 将梯度信息写入文件
+      // if (outputFile.is_open())
+      // {
+      //   outputFile << mode_ << " ";
+      //   for (int i = 0; i < dataLength_; i++)
+      //   {
+      //     outputFile << new_input(i) << " ";
+      //   }
+      //   outputFile << "\n";
+      // }
+      // else
+      // {
+      //   std::cerr << "无法打开输出文件。\n";
+      // }
 
-      // 将梯度信息写入文件
-      if (outputFile.is_open())
-      {
-        for (int i = 0; i < dataLength_; i++)
-        {
-          outputFile << new_input(i) << " ";
-        }
-        outputFile << "\n";
-      }
-      else
-      {
-        std::cerr << "无法打开输出文件。\n";
-      }
-
-      // 关闭文件流
-      outputFile.close();
-
+      // // 关闭文件流
+      // outputFile.close();
+      // //========================================================
       con1 = Calculate(new_input);
       con2 = cal_in + (c_ * tau * temp_res);
       // cout << "test:" << cal_in + c_ * tau * temp_res << endl;
       // if (con2 != con1)
       //   cout << temp11 << "| new:" << Calculate(new_input) << " ;old:" << cal_in << endl;
-    } while (con1 > con2);
-    cout << "gradient:\n"
-         << gradient << endl;
+    } while (con1 > con2 && mode_ == 0);
+    // cout << "gradient:\n"
+    //      << gradient << endl;
+    //==================================================
+    // 打开一个输出文件流
+    std::ofstream outputFile("output.txt", std::ios::app);
 
+    // 将梯度信息写入文件
+    if (outputFile.is_open())
+    {
+      outputFile << mode_ << " ";
+      for (int i = 0; i < dataLength_; i++)
+      {
+        outputFile << new_input(i) << " ";
+      }
+      outputFile << "\n";
+    }
+    else
+    {
+      std::cerr << "无法打开输出文件。\n";
+    }
+
+    // 关闭文件流
+    outputFile.close();
+    //==================================================
+
+    cout << "new_input" << endl;
+    cout << new_input << endl;
     return new_input;
   }
 
