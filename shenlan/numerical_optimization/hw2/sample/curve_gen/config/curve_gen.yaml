@@ -1,0 +1,9 @@
+TargetTopic:                '/move_base_simple/goal'
+
+PenaltyWeight:              100.0
+
+CircleObs:                  [  0.0,   0.0,   7.0]
+
+PieceLength:                0.5
+
+RelCostTol:                 1.0e-6
