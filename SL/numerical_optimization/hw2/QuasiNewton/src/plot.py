@@ -8,8 +8,8 @@ data = np.loadtxt(
 )  # 替换为你的数据文件名
 
 # 提取x和y坐标
-x_data = data[:100, 0]
-y_data = data[:100, 1]
+x_data = data[:, 0]
+y_data = data[:, 1]
 
 
 # Rosenbrock函数
