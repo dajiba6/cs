@@ -33,16 +33,27 @@ public:
   {
     double cost_value = target_cost_function_(x);
     VectorXd gradient_value = traget_gradient_function_(x);
-    double c1 = 0.5;
-    double c2 = 0.5;
-    double alpha = 1.0;
-    while (cost_value - target_cost_function_(x + alpha * direction) >=
-               c1 * alpha * direction.transpose() * gradient_value &&
-           direction.transpose() * traget_gradient_function_(x + alpha * direction) >=
+    double c1 = 1e-4;
+    double c2 = 0.9;
+    double alpha = 0.1;
+    while (cost_value - target_cost_function_(x + alpha * direction) <
+               -c1 * alpha * direction.transpose() * gradient_value ||
+           direction.transpose() * traget_gradient_function_(x + alpha * direction) <
                c2 * direction.transpose() * gradient_value)
     {
       alpha *= 0.5;
     }
+
+    //! 步长test
+    // cout << "little test: " << alpha << endl;
+    cout << "difference:" << cost_value - target_cost_function_(x + alpha * direction) << endl;
+    cout << "left       " << -c1 * alpha * direction.transpose() * gradient_value << endl;
+    // cout << "gradient_value" << endl
+    //      << gradient_value << endl;
+    // cout << "direction" << endl
+    //      << direction << endl;
+    // cout << "alpha: " << alpha << endl;
+    // cout << "cost: " << target_cost_function_(x + alpha * direction) << endl;
     return alpha;
   }
 
@@ -50,7 +61,7 @@ public:
    * @brief use L-BFGS method to find B
    * @return {*}
    */
-  // todo: lbfgs当数组只有1个数据时的处理方法
+
   VectorXd LBFGS(VectorXd gradient)
   {
     VectorXd d = gradient;
@@ -60,8 +71,8 @@ public:
       lbfgs_alpha_vec[i] = lbfgs_rho_vec[i] * lbfgs_y_vec[i].transpose() * lbfgs_s_vec[i];
       d = d - lbfgs_alpha_vec[i] * lbfgs_y_vec[i];
     }
-    double gamma = lbfgs_rho_vec[current_length - 2] *
-                   lbfgs_y_vec[current_length - 2].transpose() * lbfgs_y_vec[current_length - 2];
+    double gamma = lbfgs_rho_vec[current_length - 1] *
+                   lbfgs_y_vec[current_length - 1].transpose() * lbfgs_y_vec[current_length - 1];
     d = d / gamma;
     double beta = 0;
     for (int i = 0; i < current_length; i++)
@@ -76,7 +87,8 @@ public:
    * @brief find the minimum value
    * @return {VectorXd} x
    */
-  void Minimization()
+  void
+  Minimization()
   {
     VectorXd x = init_x_;
     VectorXd g;
@@ -84,13 +96,22 @@ public:
     int count = 0;
     VectorXd result;
     g = traget_gradient_function_(x);
-    VectorXd direction = g;
+    VectorXd direction = -g;
+
+    // 把数据输入到文件中画图
+    std::ofstream outputFile("../src/output_file.txt");
+    if (!outputFile.is_open())
+    {
+      std::cerr << "Error opening output file!" << std::endl;
+      return;
+    }
 
     while (g.cwiseAbs().maxCoeff() > 1e-6)
     {
       double t = LinsearchWeakWolfe(direction, x);
       VectorXd new_x = x + t * direction;
       VectorXd new_g = traget_gradient_function_(new_x);
+
       // 存入历史数据供LBFGS计算
       lbfgs_s_vec.push_back(new_x - x);
       lbfgs_y_vec.push_back(new_g - g);
@@ -109,6 +130,9 @@ public:
       g = new_g;
       count++;
     }
+    // 把数据输入到文件中画图
+    outputFile.close();
+
     iteration_times_ = count;
     final_value_ = target_cost_function_(x);
     final_x = x;
@@ -119,7 +143,8 @@ public:
     cout << "======== result =========" << endl;
     cout << "iteration times: " << iteration_times_ << endl;
     cout << "final_value_: " << final_value_ << endl;
-    cout << "final_x:" << final_x << endl;
+    cout << "final_x:" << endl
+         << final_x << endl;
   }
 
   int lbfgs_limit_;

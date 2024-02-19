@@ -6,9 +6,10 @@ using namespace std;
 int main()
 {
   VectorXd x1(2);
-  x1 << 0.2, 0.1;
+  x1 << 0.02, 0.01;
 
   Rosenbrock targetFunc1(x1);
+
   auto costFunc = [&targetFunc1](Eigen::VectorXd input)
   {
     return targetFunc1.Calculate(input);
@@ -21,4 +22,5 @@ int main()
 
   QuasiNewton qua1(costFunc, gradientFunc, x1);
   qua1.Minimization();
+  qua1.ResultInfo();
 }
