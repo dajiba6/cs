@@ -46,8 +46,8 @@ public:
 
     //! 步长test
     // cout << "little test: " << alpha << endl;
-    cout << "difference:" << cost_value - target_cost_function_(x + alpha * direction) << endl;
-    cout << "left       " << -c1 * alpha * direction.transpose() * gradient_value << endl;
+    // cout << "difference:" << cost_value - target_cost_function_(x + alpha * direction) << endl;
+    // cout << "left       " << -c1 * alpha * direction.transpose() * gradient_value << endl;
     // cout << "gradient_value" << endl
     //      << gradient_value << endl;
     // cout << "direction" << endl
