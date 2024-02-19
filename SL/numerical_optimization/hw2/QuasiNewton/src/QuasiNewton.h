@@ -104,6 +104,7 @@ public:
       }
 
       direction = LBFGS(new_g);
+
       x = new_x;
       g = new_g;
       count++;
