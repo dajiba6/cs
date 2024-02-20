@@ -51,14 +51,16 @@ public:
 
     //! 步长test
     // cout << "difference:" << cost_value - target_cost_function_(x + alpha * direction) << endl;
-    // cout << "left       " << -c1 * alpha * direction.transpose() * gradient_value << endl;
+    // cout << "left   " << -c1 * alpha * direction.transpose() * gradient_value
+    //      << "  -c1  " << -c1
+    //      << "  dir  " << direction.transpose() * gradient_value << endl;
     // cout << "gradient_value" << endl
-    //      << gradient_value << endl;
+    //  << gradient_value << endl;
     // cout << "direction" << endl
     //      << direction << endl;
     // cout << "alpha: " << alpha << endl;
-    cout << "new cost: " << target_cost_function_(x + alpha * direction) << endl;
-    // cout << "old cost: " << cost_value << endl;
+    // cout << "new cost: " << target_cost_function_(x + alpha * direction) << endl;
+    cout << "old cost: " << cost_value << endl;
     return alpha;
   }
 
@@ -69,20 +71,20 @@ public:
 
   VectorXd LBFGS(VectorXd gradient)
   {
-    VectorXd d = gradient;
+    VectorXd d = -gradient;
     int current_length = std::min(lbfgs_limit_, static_cast<int>(lbfgs_s_vec.size()));
-    for (int i = 0; i < current_length; i++)
+    for (int i = current_length - 1; i >= 0; i--)
     {
-      lbfgs_alpha_vec[i] = lbfgs_rho_vec[i] * lbfgs_y_vec[i].transpose() * lbfgs_s_vec[i];
+      lbfgs_alpha_vec[i] = lbfgs_rho_vec[i] * (lbfgs_s_vec[i].transpose() * d).value();
       d = d - lbfgs_alpha_vec[i] * lbfgs_y_vec[i];
     }
     double gamma = lbfgs_rho_vec[current_length - 1] *
-                   lbfgs_y_vec[current_length - 1].transpose() * lbfgs_y_vec[current_length - 1];
+                   (lbfgs_y_vec[current_length - 1].transpose() * lbfgs_y_vec[current_length - 1]).value();
     d = d / gamma;
-    double beta = 0;
+    double beta;
     for (int i = 0; i < current_length; i++)
     {
-      beta = lbfgs_rho_vec[i] * lbfgs_y_vec[i].transpose() * d;
+      beta = lbfgs_rho_vec[i] * (lbfgs_y_vec[i].transpose() * d).value();
       d = d + lbfgs_s_vec[i] * (lbfgs_alpha_vec[i] - beta);
     }
 
@@ -92,6 +94,11 @@ public:
        第三次移动由LBFGS决定方向，wolfe决定步长
        第三次步长移动了50，但x没改变多少，方向没有特别奇怪的数字
        步长中的 new cost 第二次和第四次数值无变化
+       old cost最后连续三次无变化，无变化为什么能pass weak wolfe？？ direction和gradient负定 反向更新
+       direction有问题 --> LBFGS更新方向有问题
+
+       LBFGS 初始值d 改成-g 效果有改善，但依旧出现负定现象
+
 
     */
 
@@ -102,6 +109,7 @@ public:
     // cout << "lbfgs_s_vec: " << lbfgs_s_vec[current_length - 1] << endl;
     // cout << "lbfgs_y_vec: " << lbfgs_y_vec[current_length - 1] << endl;
     // cout << "part of rho: " << lbfgs_s_vec[current_length - 1].transpose() * lbfgs_y_vec[current_length - 1] << endl;
+    // cout << "s size  " << lbfgs_s_vec.size() << endl;
     return d;
   }
 
@@ -118,6 +126,7 @@ public:
     int count = 0;
     VectorXd result;
     g = traget_gradient_function_(x);
+    // 初始化方向
     VectorXd direction = -g;
 
     // 把数据输入到文件中画图
@@ -130,6 +139,7 @@ public:
 
     while (g.cwiseAbs().maxCoeff() > 1e-6)
     {
+      // weakWolfe 搜索合适步长
       double t = LinsearchWeakWolfe(direction, x);
       VectorXd new_x = x + t * direction;
       VectorXd new_g = traget_gradient_function_(new_x);
