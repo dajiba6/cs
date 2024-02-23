@@ -169,7 +169,6 @@ namespace cubic_spline
           }
         }
       }
-      return;
     }
   };
 
@@ -191,7 +190,6 @@ namespace cubic_spline
                               const Eigen::Vector2d &tailPos,
                               const int &pieceNum)
     {
-      N = pieceNum;
       headP = headPos;
       tailP = tailPos;
       A.create(4 * N, 4, 4);

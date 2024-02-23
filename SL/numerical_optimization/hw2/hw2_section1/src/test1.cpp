@@ -5,8 +5,8 @@ using namespace std;
 
 int main()
 {
-  VectorXd x1(2);
-  x1 << 0.02, 0.01;
+  VectorXd x1(4);
+  x1 << -3, -5, -100, 1;
 
   Rosenbrock targetFunc1(x1);
 

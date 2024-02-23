@@ -20,7 +20,7 @@ namespace path_smoother
     cubic_spline::CubicSpline cubSpline;
 
     int pieceN;
-    Eigen::Vector3d diskObstacle;
+    Eigen::Matrix3Xd diskObstacles;
     double penaltyWeight;
     Eigen::Vector2d headP;
     Eigen::Vector2d tailP;
@@ -34,6 +34,7 @@ namespace path_smoother
                                       const Eigen::VectorXd &x,
                                       Eigen::VectorXd &g)
     {
+      // TODO
       PathSmoother &obj = *(PathSmoother *)ptr;
       const int N = obj.pieceN;
       Eigen::Map<const Eigen::Matrix2Xd> innerP(x.data(), 2, N - 1);
@@ -57,7 +58,6 @@ namespace path_smoother
           gradInnerP.col(i) += -delta / dist * obj.penaltyWeight;
         }
       }
-
       return cost;
     }
 
@@ -65,11 +65,11 @@ namespace path_smoother
     inline bool setup(const Eigen::Vector2d &initialP,
                       const Eigen::Vector2d &terminalP,
                       const int &pieceNum,
-                      const Eigen::Vector3d &diskObs,
+                      const Eigen::Matrix3Xd &diskObs,
                       const double penaWeight)
     {
       pieceN = pieceNum;
-      diskObstacle = diskObs;
+      diskObstacles = diskObs;
       penaltyWeight = penaWeight;
       headP = initialP;
       tailP = terminalP;
@@ -86,6 +86,7 @@ namespace path_smoother
                            const Eigen::Matrix2Xd &iniInPs,
                            const double &relCostTol)
     {
+      // TODO
       Eigen::VectorXd x(pieceN * 2 - 2);
       Eigen::Map<Eigen::Matrix2Xd> innerP(x.data(), 2, pieceN - 1);
       innerP = iniInPs;
@@ -118,7 +119,6 @@ namespace path_smoother
                   << lbfgs::lbfgs_strerror(ret)
                   << std::endl;
       }
-
       return minCost;
     }
   };

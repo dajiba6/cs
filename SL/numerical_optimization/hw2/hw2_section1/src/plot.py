@@ -4,7 +4,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 # 读取数据
 data = np.loadtxt(
-    "/home/cyn/cs/SL/numerical_optimization/hw2/QuasiNewton/src/output_file.txt"
+    "/home/cyn/cs/SL/numerical_optimization/hw2/hw2_section1/src/output_file.txt"
 )  # 替换为你的数据文件名
 
 # 提取x和y坐标

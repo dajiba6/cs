@@ -19,7 +19,7 @@ public:
               VectorXd input_data) : target_cost_function_(cost_func),
                                      traget_gradient_function_(gradient),
                                      init_x_(input_data),
-                                     lbfgs_limit_(30),
+                                     lbfgs_limit_(20),
                                      lbfgs_alpha_vec(lbfgs_limit_, 0.0)
   {
     cout << "Initialization complete." << endl;
@@ -75,7 +75,7 @@ public:
 
   /**
    * @brief find the minimum value
-   * @return {VectorXd} x
+   * @return
    */
   void
   Minimization()
@@ -109,6 +109,7 @@ public:
       }
 
       direction = LBFGS(new_g);
+      // direction = -new_g;
 
       x = new_x;
       g = new_g;
@@ -124,10 +125,12 @@ public:
   void ResultInfo()
   {
     cout << "======== result =========" << endl;
-    cout << "iteration times: " << iteration_times_ << endl;
-    cout << "final_value_: " << final_value_ << endl;
+    cout << "init_x: " << endl
+         << init_x_ << endl;
     cout << "final_x:" << endl
          << final_x << endl;
+    cout << "iteration times: " << iteration_times_ << endl;
+    cout << "final_value_: " << final_value_ << endl;
   }
 
   int lbfgs_limit_;
