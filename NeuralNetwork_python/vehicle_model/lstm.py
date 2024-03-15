@@ -40,6 +40,8 @@ X_train = data[
         "steering_percentage",
         "speed_mps",
         "acceleration_current_point",
+        "acceleration_next_point",
+        "angular_velocity_vrf",
     ]
 ]
 y_train = data[["acceleration_next_point", "angular_velocity_vrf"]]
