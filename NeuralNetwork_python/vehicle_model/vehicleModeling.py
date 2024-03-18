@@ -43,7 +43,7 @@ class RecordDataset(Dataset):
                 "angular_velocity_vrf",
             ]
         ]
-
+        self.data_ori = self.data_samples.copy()
         # 滑动窗口平滑滤波
         columns_to_smooth = [
             "throttle_percentage",
@@ -58,6 +58,34 @@ class RecordDataset(Dataset):
             self.data_samples.loc[:, column] = moving_average_filter(
                 self.data_samples[column], window_size=5
             )
+
+        num_features = len(columns_to_smooth)
+        fig, axs = plt.subplots(num_features, 1, figsize=(12, 6 * num_features))
+        for i, feature in enumerate(columns_to_smooth):
+            # 原始特征
+            axs[i].plot(
+                self.data_ori.index,
+                self.data_ori[feature],
+                label=f"Original {feature}",
+                zorder=1,
+            )
+            axs[i].set_title(f"{feature} Before and After Smoothing")  # 设置子图标题
+            axs[i].set_xlabel("Index")
+            axs[i].set_ylabel("Feature Value")
+            axs[i].legend()  # 添加图例
+
+            # 平滑后的特征
+            axs[i].plot(
+                self.data_samples.index,
+                self.data_samples[f"{feature}"],
+                label=f"Smoothed {feature}",
+                zorder=2,
+            )
+
+        # 调整布局
+        plt.tight_layout()
+        # 显示图像
+        plt.show()
 
         # TODO: standardlized residual 去除 outliers
         self.sequence_length = sequence_length
@@ -204,10 +232,10 @@ if __name__ == "__main__":
 
     input_size = 3
     hidden_size = 8
-    num_layers = 2
+    num_layers = 5
     output_size = 1
     batch_size = 32
-    learning_rate = 0.01
+    learning_rate = 0.002
     epochs = 100
     sequence_length = 25
     csv_file = "/home/cyn/cs/NeuralNetwork_python/vehicle_model/record.csv"
