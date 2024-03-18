@@ -1,31 +1,9 @@
-import numpy as np
-import logging
 import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader, random_split
-
-print(torch.version.cuda)
-logging.basicConfig(level=logging.INFO, format="%(message)s")
-
-
-def print_aligned_title(title):
-    total_length = 80
-    title_length = len(title)
-    left_padding_length = (total_length - title_length) // 2
-    right_padding_length = total_length - title_length - left_padding_length
-    aligned_title = (
-        left_padding_length * "=" + " " + title + " " + right_padding_length * "="
-    )
-    logging.info(aligned_title)
-
-
-# 滑动窗口滤波
-def moving_average_filter(data, window_size):
-    filled_data = data.rolling(window=window_size, min_periods=1).mean()
-    return filled_data
 
 
 # 数据集
@@ -36,97 +14,64 @@ class RecordDataset(Dataset):
             [
                 "throttle_percentage",
                 "brake_percentage",
-                "speed_mps",
                 "steering_percentage",
+                "speed_mps",
                 "acceleration_current_point",
                 "acceleration_next_point",
                 "angular_velocity_vrf",
             ]
         ]
 
-        # 滑动窗口平滑滤波
-        columns_to_smooth = [
-            "throttle_percentage",
-            "brake_percentage",
-            "speed_mps",
-            "steering_percentage",
-            "acceleration_current_point",
-            "acceleration_next_point",
-            "angular_velocity_vrf",
-        ]
-        for column in columns_to_smooth:
-            self.data_samples.loc[:, column] = moving_average_filter(
-                self.data_samples[column], window_size=5
-            )
-
-        # TODO: standardlized residual 去除 outliers
         self.sequence_length = sequence_length
-        self.throttle_count = 0
-        self.brake_count = 0
+
         big_group = []
         index_tokeep = []
 
-        normalization_list = [[] for _ in range(len(self.data_samples.columns))]
+        df_min = []
+        df_max = []
+        # TODO:以指针形式选择数据，减少数据的复制移动
         # 清理数据
         for i in range(len(self.data_samples)):
-            steering_condition = (
-                abs(self.data_samples.at[i, "steering_percentage"]) <= 1
-            )
-            cmd_condition1 = (
-                self.data_samples.at[i, "throttle_percentage"] >= 1
-                or self.data_samples.at[i, "brake_percentage"] >= 1
-            )
-            cmd_condition2 = not (
-                self.data_samples.at[i, "throttle_percentage"] > 0
-                and self.data_samples.at[i, "brake_percentage"] > 0
-            )
-            speed_condition = self.data_samples.at[i, "speed_mps"] > 0
-
             if (
-                steering_condition
-                and cmd_condition1
-                and cmd_condition2
-                and speed_condition
+                abs(self.data_samples.at[i, "steering_percentage"]) <= 1
+                and (
+                    self.data_samples.at[i, "throttle_percentage"] >= 1
+                    or self.data_samples.at[i, "brake_percentage"] >= 1
+                )
+                and (
+                    self.data_samples.at[i, "throttle_percentage"]
+                    * self.data_samples.at[i, "acceleration_next_point"]
+                    > 0
+                )
+                and self.data_samples.at[i, "speed_mps"] > 0
             ):
-                index_tokeep.append(i)
 
+                index_tokeep.append(i)
             else:
                 if len(index_tokeep) >= self.sequence_length:
-                    # 存储需要归一化的数据
-                    for idx in index_tokeep:
-                        row_data = self.data_samples.iloc[idx]
-                        for col_idx, col_name in enumerate(self.data_samples.columns):
-                            normalization_list[col_idx].append(row_data[col_name])
-
                     small_group_data = [
                         self.data_samples.iloc[idx] for idx in index_tokeep
                     ]
                     small_group_df = pd.DataFrame(small_group_data)
+                    # TODO: 归一化
+                    group_min = small_group_df.min().to_dict()
+                    group_max = small_group_df.max().to_dict()
+
                     big_group.append(small_group_df)
                 index_tokeep = []
-
-        # 最后一个数据
+        # 最后一个
         if len(index_tokeep) >= self.sequence_length:
-            for idx in index_tokeep:
-                row_data = self.data_samples.iloc[idx]
-                for col_idx, col_name in enumerate(self.data_samples.columns):
-                    normalization_list[col_idx].append(row_data[col_name])
             small_group_data = [self.data_samples.iloc[idx] for idx in index_tokeep]
             small_group_df = pd.DataFrame(small_group_data)
+            group_min = small_group_df.min().to_dict()
+            group_max = small_group_df.max().to_dict()
+            if i == 0:
+                df_min = group_min
+                df_max = group_max
+            else:
+                df_min = {k: min(v, df_min[k]) for k, v in group_min.items()}
+                df_max = {k: max(v, df_max[k]) for k, v in group_max.items()}
             big_group.append(small_group_df)
-
-        # 归一化
-        normalization_list = np.array(normalization_list)
-        max_list = np.max(normalization_list, axis=1)
-        min_list = np.min(normalization_list, axis=1)
-        max_difference = max_list - min_list
-        for group in big_group:
-            for data_idx, row_data in group.iterrows():
-                if row_data["throttle_percentage"] > 0:
-                    self.throttle_count += 1
-                else:
-                    self.brake_count += 1
-                group.loc[data_idx] = (row_data - min_list) / (max_list - min_list)
 
         self.samples = []
         for group in big_group:
@@ -134,21 +79,20 @@ class RecordDataset(Dataset):
                 if i + sequence_length <= len(group):
                     self.samples.append(group.iloc[i : i + sequence_length])
 
-        print_aligned_title("Data processing")
+        print(f"=========== Data initialize ============")
         print(f"Total original samples: {len(self.data_samples)}")
         print(f"Total filtered samples: {len(self.samples)}")
-        print(f"throttle left:{self.throttle_count}, brake left:{self.brake_count}\n")
+        print(f"========================================")
 
     def __len__(self):
         return len(self.samples)
 
-    # 选择用于训练的列
     def __getitem__(self, idx):
         features = torch.tensor(
-            self.samples[idx].iloc[:, :3].values, dtype=torch.float32
+            self.samples[idx].iloc[:, :4].values, dtype=torch.float32
         )
         target = torch.tensor(
-            self.samples[idx].iloc[-1, -3:-2].values, dtype=torch.float32
+            self.samples[idx].iloc[-1, -1:].values, dtype=torch.float32
         )
         return features, target
 
@@ -202,23 +146,16 @@ def test(model, test_loader, criterion):
 
 if __name__ == "__main__":
 
-    input_size = 3
+    input_size = 4
     hidden_size = 8
     num_layers = 2
     output_size = 1
     batch_size = 32
-    learning_rate = 0.01
-    epochs = 100
-    sequence_length = 25
+    learning_rate = 0.02
+    epochs = 20
+    sequence_length = 20
     csv_file = "/home/cyn/cs/NeuralNetwork_python/vehicle_model/record.csv"
     save_path = "VehicleModel.pth"
-    print_aligned_title("Config")
-    print(
-        f"input size:{input_size}, ouput size:{output_size}, hidden size:{hidden_size}, num layers:{num_layers}"
-    )
-    print(
-        f"batch size:{batch_size}, learning rate:{learning_rate}, epochs:{epochs}, sequence length: {sequence_length}\n"
-    )
 
     # 数据集
     dataset = RecordDataset(csv_file, sequence_length)
