@@ -81,7 +81,6 @@ class RecordDataset(Dataset):
         ]
         self.data_ori = self.data_samples.copy()
 
-        # 滤波
         for column in self.data_samples.columns:
             self.data_samples.loc[:, column] = moving_average_filter(
                 self.data_samples[column], window_size=3
@@ -151,9 +150,7 @@ class RecordDataset(Dataset):
         if len(index_tokeep) >= self.sequence_length:
             for idx in index_tokeep:
                 row_data = self.data_samples.iloc[idx]
-                for col_idx, col_name in enumerate(
-                    self.data_samples.columns
-                ):  # 返回列序号及列名字
+                for col_idx, col_name in enumerate(self.data_samples.columns):
                     normalization_list[col_idx].append(row_data[col_name])
             small_group_data = [self.data_samples.iloc[idx] for idx in index_tokeep]
             small_group_df = pd.DataFrame(small_group_data)
@@ -161,17 +158,15 @@ class RecordDataset(Dataset):
 
         # 归一化
         normalization_list = np.array(normalization_list)
-        self.max_list = np.max(normalization_list, axis=1)
-        self.min_list = np.min(normalization_list, axis=1)
+        max_list = np.max(normalization_list, axis=1)
+        min_list = np.min(normalization_list, axis=1)
         for group in big_group:
             for data_idx, row_data in group.iterrows():
                 if row_data["throttle_percentage"] > 0:
                     self.throttle_count += 1
                 else:
                     self.brake_count += 1
-                group.loc[data_idx] = (row_data - self.min_list) / (
-                    self.max_list - self.min_list
-                )
+                group.loc[data_idx] = (row_data - min_list) / (max_list - min_list)
 
         self.samples = []
         for group in big_group:
@@ -200,48 +195,6 @@ class RecordDataset(Dataset):
         target = torch.tensor(
             self.samples[idx].iloc[-1, -3:-2].values, dtype=torch.float32
         )
-        return features, target
-
-
-class GenerateDataset(Dataset):
-    """
-    生成标定表的数据集
-    参数：
-      max_list:[0]cmd,[1]speed,[2]acc
-      min_list:[0]cmd,[1]speed,[2]acc
-    """
-
-    def __init__(self, sequence_length, max_list, min_list):
-        self.samples = []
-        cmd = np.arange(0, 81, 5)
-        speed = np.arange(0, 10.1, 0.2)
-        self.cmd, self.speed = np.meshgrid(cmd, speed)
-        self.input_data_ori = np.column_stack((self.cmd.ravel(), self.speed.ravel()))
-        input_length = len(self.input_data_ori)
-        # 归一化
-        max_cmd = max_list[0]
-        min_cmd = min_list[0]
-        max_speed = max_list[1]
-        min_speed = min_list[1]
-        normalize_data = self.input_data_ori.copy()
-        normalize_data[:, 0] = (normalize_data[:, 0] - min_cmd) / (max_cmd - min_cmd)
-        normalize_data[:, 1] = (normalize_data[:, 1] - min_speed) / (
-            max_speed - min_speed
-        )
-        input_data = np.repeat(normalize_data, repeats=sequence_length, axis=0)
-        df = pd.DataFrame(input_data, columns=["cmd", "speed"])
-        for i in range(input_length):
-            self.samples.append(df.iloc[i : i + sequence_length])
-
-    def __len__(self):
-        return len(self.samples)
-
-    # 选择用于训练的列
-    def __getitem__(self, idx):
-        features = torch.tensor(
-            self.samples[idx].iloc[:, [0, 1]].values, dtype=torch.float32
-        )
-        target = torch.tensor(self.samples[idx].iloc[-1, -1], dtype=torch.float32)
         return features, target
 
 
@@ -321,34 +274,28 @@ def visualize_data(data):
     plt.show()
 
 
-def generate_calibration_table(
-    model, sequence_length, batch_size, device, max_list, min_list
-):
-    min_list = [min_list[0], min_list[2], min_list[4]]
-    max_list = [max_list[0], max_list[2], max_list[4]]
-    generate_set = GenerateDataset(sequence_length, max_list, min_list)
-    loader = DataLoader(generate_set, batch_size=batch_size, shuffle=False)
-    model.eval()
-    calibration_table = []
-    with torch.no_grad():
-        for inputs, _ in loader:
-            inputs = inputs.to(device)
-            outputs = model(inputs)
-            outputs = outputs.cpu().numpy()
-            calibration_table.append(outputs)
+import torch
 
-    calibration_table = np.vstack(calibration_table)
-    # 反归一化
-    min_value = min_list[2]
-    max_value = max_list[2]
-    calibration_table = calibration_table * (max_value - min_value) + min_value
-    calibration_table = pd.DataFrame(
-        {
-            "cmd": generate_set.input_data_ori[:, 0],
-            "speed": generate_set.input_data_ori[:, 1],
-            "acc": calibration_table[:, 0],
-        }
-    )
+
+def generate_calibration_table(model, input_data, device):
+    """
+    使用训练好的模型生成标定表
+
+    参数:
+        model (torch.nn.Module): 训练好的模型
+        input_data (numpy.ndarray): 输入数据，应与训练数据具有相同的特征
+        device (str): 使用的设备，可以是 'cpu' 或 'cuda'
+    """
+    # 将输入数据转换为张量
+    input_tensor = torch.tensor(input_data, dtype=torch.float32)
+    # 在设备上进行预测
+    with torch.no_grad():
+        input_tensor = input_tensor.to(device)
+        output_tensor = model(input_tensor)
+    # 将预测结果转换为 numpy 数组
+    output_data = output_tensor.cpu().numpy()
+    # 生成标定表（这里假设直接将预测结果作为标定表）
+    calibration_table = output_data
     return calibration_table
 
 
@@ -374,12 +321,10 @@ if __name__ == "__main__":
 
     # 数据集
     dataset = RecordDataset(csv_file, sequence_length)
-    # train_size = int(0.8 * len(dataset))  # 训练集占比 80%
-    # val_size = len(dataset) - train_size  # 验证集占比 20%
-    # train_set, val_set = random_split(dataset, [train_size, val_size])
-    # train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True)
-
-    train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    train_size = int(0.8 * len(dataset))  # 训练集占比 80%
+    val_size = len(dataset) - train_size  # 验证集占比 20%
+    train_set, val_set = random_split(dataset, [train_size, val_size])
+    train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True)
 
     # 模型
     model = LSTM(input_size, hidden_size, num_layers, output_size)
@@ -389,33 +334,22 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print_aligned_title("Using device: " + str(device))
     model.to(device)
-
     # visualize_data(dataset)
+    # 训练
+    final_loss = train(model, train_loader, criterion, optimizer, epochs)
 
-    # # 训练
-    # final_loss = train(model, train_loader, criterion, optimizer, epochs)
+    # 测试
+    test_loader = DataLoader(val_set, batch_size=batch_size)
+    test(model, test_loader, criterion)
 
-    # # 测试
-    # test_loader = DataLoader(val_set, batch_size=batch_size)
-    # test(model, test_loader, criterion)
-
-    # # 保存
-    # current_time = time.strftime("%Y%m%d%H%M", time.localtime())
-    # save_dir = "models"
-    # os.makedirs(save_dir, exist_ok=True)  # 确保文件夹存在
-    # if dataset.mode == 1:
-    #     save_name = f"{current_time}_throttle_loss{final_loss}.pth"
-    # else:
-    #     save_name = f"{current_time}_brake_loss{final_loss}.pth"
-    # save_path = os.path.join(save_dir, save_name)
-    # torch.save(model.state_dict(), save_path)
-    # print("\nModel saved successfully.")
-
-    # 生成标定表
-    model_path = "/home/cyn/cs/NeuralNetwork_python/vehicle_model/models/202403191535_throttle_loss0.0013729687514815936.pth"
-    model.load_state_dict(torch.load(model_path))
-    calibration_table = generate_calibration_table(
-        model, sequence_length, batch_size, device, dataset.min_list, dataset.max_list
-    )
-    calibration_table.to_csv("calibration_table.csv", index=False)
-    print("Calibration table generated and saved.")
+    # 保存
+    current_time = time.strftime("%Y%m%d%H%M", time.localtime())
+    save_dir = "models"
+    os.makedirs(save_dir, exist_ok=True)  # 确保文件夹存在
+    if dataset.mode == 1:
+        save_name = f"{current_time}_throttle_loss{final_loss}.pth"
+    else:
+        save_name = f"{current_time}_brake_loss{final_loss}.pth"
+    save_path = os.path.join(save_dir, save_name)
+    torch.save(model.state_dict(), save_path)
+    print("\nModel saved successfully.")
