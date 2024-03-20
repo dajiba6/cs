@@ -175,10 +175,9 @@ class RecordDataset(Dataset):
 
         self.samples = []
         for group in big_group:
-            for i in range(len(group)):
-                if i + sequence_length <= len(group):
-                    self.samples.append(group.iloc[i : i + sequence_length])
-
+            for i in range(len(group) - self.sequence_length + 1):
+                self.samples.append(group.iloc[i : i + sequence_length])
+        test = np.stack(self.samples, axis=1)
         print_aligned_title("Data processing")
         print(f"Total original samples: {len(self.data_samples)}")
         print(f"Total filtered samples: {len(self.samples)}")
@@ -197,9 +196,8 @@ class RecordDataset(Dataset):
             features = torch.tensor(
                 self.samples[idx].iloc[:, [1, 2]].values, dtype=torch.float32
             )
-        target = torch.tensor(
-            self.samples[idx].iloc[-1, -3:-2].values, dtype=torch.float32
-        )
+        target = torch.tensor(self.samples[idx].iloc[-1, 5], dtype=torch.float32)
+        target = target.view(-1, 1)  # 调整目标张量的形状为 [1, 1]
         return features, target
 
 
@@ -241,6 +239,7 @@ class GenerateDataset(Dataset):
         features = torch.tensor(
             self.samples[idx].iloc[:, [0, 1]].values, dtype=torch.float32
         )
+
         target = torch.tensor(self.samples[idx].iloc[-1, -1], dtype=torch.float32)
         return features, target
 
@@ -342,6 +341,9 @@ def generate_calibration_table(
     min_value = min_list[2]
     max_value = max_list[2]
     calibration_table = calibration_table * (max_value - min_value) + min_value
+    print(f"cmd: {len(generate_set.input_data_ori[:, 0])}")
+    print(f"speed: {len(generate_set.input_data_ori[:, 1])}")
+    print(f"acc: {len(calibration_table[:, 0])}")
     calibration_table = pd.DataFrame(
         {
             "cmd": generate_set.input_data_ori[:, 0],
@@ -355,13 +357,13 @@ def generate_calibration_table(
 if __name__ == "__main__":
 
     input_size = 2
-    hidden_size = 8
+    hidden_size = 2
     num_layers = 2
     output_size = 1
     batch_size = 20
     learning_rate = 0.002
     epochs = 100
-    sequence_length = 25
+    sequence_length = 20
     csv_file = "/home/cyn/cs/NeuralNetwork_python/vehicle_model/record.csv"
 
     print_aligned_title("Config")
@@ -392,8 +394,8 @@ if __name__ == "__main__":
 
     # visualize_data(dataset)
 
-    # # 训练
-    # final_loss = train(model, train_loader, criterion, optimizer, epochs)
+    # # # 训练
+    final_loss = train(model, train_loader, criterion, optimizer, epochs)
 
     # # 测试
     # test_loader = DataLoader(val_set, batch_size=batch_size)
@@ -411,9 +413,9 @@ if __name__ == "__main__":
     # torch.save(model.state_dict(), save_path)
     # print("\nModel saved successfully.")
 
-    # 生成标定表
-    model_path = "/home/cyn/cs/NeuralNetwork_python/vehicle_model/models/202403191535_throttle_loss0.0013729687514815936.pth"
-    model.load_state_dict(torch.load(model_path))
+    # # # 生成标定表
+    # # model_path = "/home/cyn/cs/NeuralNetwork_python/vehicle_model/models/202403191535_throttle_loss0.0013729687514815936.pth"
+    # # model.load_state_dict(torch.load(model_path))
     calibration_table = generate_calibration_table(
         model, sequence_length, batch_size, device, dataset.min_list, dataset.max_list
     )
