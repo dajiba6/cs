@@ -63,6 +63,16 @@ def fir_filter(data, num_taps, cutoff_freq, window="hamming"):
     return filtered_data
 
 
+"""
+TODO: 数据集修改
+1. 对原始数据滑动窗口平滑
+2. 找出outliars,将其序号存储到数组exclude中
+3. 找出不满足油门速度等限制的数据,将其序号存储到数组exclude中
+4. 
+
+"""
+
+
 # 数据集
 class RecordDataset(Dataset):
     def __init__(self, csv_file, sequence_length):
@@ -363,7 +373,7 @@ if __name__ == "__main__":
     batch_size = 20
     learning_rate = 0.002
     epochs = 100
-    sequence_length = 20
+    sequence_length = 1
     csv_file = "/home/cyn/cs/NeuralNetwork_python/vehicle_model/record.csv"
 
     print_aligned_title("Config")
