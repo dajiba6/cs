@@ -1,3 +1,8 @@
+"""
+基于学习的离线标定表生成
+cyn
+"""
+
 import numpy as np
 import time
 import threading
@@ -65,11 +70,12 @@ def fir_filter(data, num_taps, cutoff_freq, window="hamming"):
 
 """
 TODO: 数据集修改
-1. 对原始数据滑动窗口平滑
-2. 找出outliars,将其序号存储到数组exclude中
-3. 找出不满足油门速度等限制的数据,将其序号存储到数组exclude中
-4. 
-
+- 对原始数据滑动窗口平滑
+- 找出outliars,将其序号存储到数组exclude中
+- 添加油门刹车分类限制到exclude中
+- 找出不满足油门速度等限制的数据,将其序号存储到数组exclude中
+- 添加数据集label平移功能,用于设定时间差
+- 在__getitem__处实现按sequencelength读取
 """
 
 
@@ -78,28 +84,22 @@ class RecordDataset(Dataset):
     def __init__(self, csv_file, sequence_length):
         self.mode = 1  # 1 throttle; 2 brake
         self.data = pd.read_csv(csv_file)
-        self.data_samples = self.data[
+        self.data = self.data[
             [
                 "throttle_percentage",
                 "brake_percentage",
                 "speed_mps",
                 "steering_percentage",
                 "acceleration_current_point",
-                "acceleration_next_point",
-                "angular_velocity_vrf",
             ]
         ]
-        self.data_ori = self.data_samples.copy()
 
         # 滤波
         for column in self.data_samples.columns:
             self.data_samples.loc[:, column] = moving_average_filter(
                 self.data_samples[column], window_size=3
             )
-        # for column in self.self.data_samples.columns:
-        #     self.data_samples.loc[:, column] = fir_filter(
-        #         self.data_samples[column], 3, 1e-20
-        #     )
+
         self.data_samples_no_extraction = self.data_samples.copy()
 
         # TODO: standardlized residual 去除 outliers

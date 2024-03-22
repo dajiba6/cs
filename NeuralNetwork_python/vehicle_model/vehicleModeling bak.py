@@ -1,3 +1,8 @@
+"""
+基于学习的离线标定表生成
+cyn
+"""
+
 import numpy as np
 import time
 import threading
@@ -61,6 +66,17 @@ def fir_filter(data, num_taps, cutoff_freq, window="hamming"):
     filter_coeffs = firwin(num_taps, cutoff=cutoff_freq, window=window)
     filtered_data = np.convolve(data, filter_coeffs, mode="same")
     return filtered_data
+
+
+"""
+TODO: 数据集修改
+- 对原始数据滑动窗口平滑
+- 找出outliars,将其序号存储到数组exclude中
+- 添加油门刹车分类限制到exclude中
+- 找出不满足油门速度等限制的数据,将其序号存储到数组exclude中
+- 添加数据集label平移功能,用于设定时间差
+- 在__getitem__处实现按sequencelength读取
+"""
 
 
 # 数据集
@@ -175,10 +191,9 @@ class RecordDataset(Dataset):
 
         self.samples = []
         for group in big_group:
-            for i in range(len(group)):
-                if i + sequence_length <= len(group):
-                    self.samples.append(group.iloc[i : i + sequence_length])
-
+            for i in range(len(group) - self.sequence_length + 1):
+                self.samples.append(group.iloc[i : i + sequence_length])
+        test = np.stack(self.samples, axis=1)
         print_aligned_title("Data processing")
         print(f"Total original samples: {len(self.data_samples)}")
         print(f"Total filtered samples: {len(self.samples)}")
@@ -198,6 +213,7 @@ class RecordDataset(Dataset):
                 self.samples[idx].iloc[:, [1, 2]].values, dtype=torch.float32
             )
         target = torch.tensor(self.samples[idx].iloc[-1, 5], dtype=torch.float32)
+        target = target.view(-1, 1)  # 调整目标张量的形状为 [1, 1]
         return features, target
 
 
@@ -239,6 +255,7 @@ class GenerateDataset(Dataset):
         features = torch.tensor(
             self.samples[idx].iloc[:, [0, 1]].values, dtype=torch.float32
         )
+
         target = torch.tensor(self.samples[idx].iloc[-1, -1], dtype=torch.float32)
         return features, target
 
@@ -340,6 +357,9 @@ def generate_calibration_table(
     min_value = min_list[2]
     max_value = max_list[2]
     calibration_table = calibration_table * (max_value - min_value) + min_value
+    print(f"cmd: {len(generate_set.input_data_ori[:, 0])}")
+    print(f"speed: {len(generate_set.input_data_ori[:, 1])}")
+    print(f"acc: {len(calibration_table[:, 0])}")
     calibration_table = pd.DataFrame(
         {
             "cmd": generate_set.input_data_ori[:, 0],
@@ -353,13 +373,13 @@ def generate_calibration_table(
 if __name__ == "__main__":
 
     input_size = 2
-    hidden_size = 8
+    hidden_size = 2
     num_layers = 2
     output_size = 1
     batch_size = 20
     learning_rate = 0.002
     epochs = 100
-    sequence_length = 25
+    sequence_length = 1
     csv_file = "/home/cyn/cs/NeuralNetwork_python/vehicle_model/record.csv"
 
     print_aligned_title("Config")
@@ -390,28 +410,28 @@ if __name__ == "__main__":
 
     # visualize_data(dataset)
 
-    # # 训练
+    # # # 训练
     final_loss = train(model, train_loader, criterion, optimizer, epochs)
 
     # # 测试
     # test_loader = DataLoader(val_set, batch_size=batch_size)
     # test(model, test_loader, criterion)
 
-    # 保存
-    current_time = time.strftime("%Y%m%d%H%M", time.localtime())
-    save_dir = "models"
-    os.makedirs(save_dir, exist_ok=True)  # 确保文件夹存在
-    if dataset.mode == 1:
-        save_name = f"{current_time}_throttle_loss{final_loss}.pth"
-    else:
-        save_name = f"{current_time}_brake_loss{final_loss}.pth"
-    save_path = os.path.join(save_dir, save_name)
-    torch.save(model.state_dict(), save_path)
-    print("\nModel saved successfully.")
+    # # 保存
+    # current_time = time.strftime("%Y%m%d%H%M", time.localtime())
+    # save_dir = "models"
+    # os.makedirs(save_dir, exist_ok=True)  # 确保文件夹存在
+    # if dataset.mode == 1:
+    #     save_name = f"{current_time}_throttle_loss{final_loss}.pth"
+    # else:
+    #     save_name = f"{current_time}_brake_loss{final_loss}.pth"
+    # save_path = os.path.join(save_dir, save_name)
+    # torch.save(model.state_dict(), save_path)
+    # print("\nModel saved successfully.")
 
-    # # 生成标定表
-    # model_path = "/home/cyn/cs/NeuralNetwork_python/vehicle_model/models/202403191535_throttle_loss0.0013729687514815936.pth"
-    # model.load_state_dict(torch.load(model_path))
+    # # # 生成标定表
+    # # model_path = "/home/cyn/cs/NeuralNetwork_python/vehicle_model/models/202403191535_throttle_loss0.0013729687514815936.pth"
+    # # model.load_state_dict(torch.load(model_path))
     calibration_table = generate_calibration_table(
         model, sequence_length, batch_size, device, dataset.min_list, dataset.max_list
     )
