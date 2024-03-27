@@ -16,25 +16,6 @@ import matplotlib.pyplot as plt
 from scipy.signal import firwin
 from torch.utils.data import Dataset, DataLoader, random_split
 
-print(torch.version.cuda)
-logging.basicConfig(level=logging.INFO, format="%(message)s")
-
-
-def interpolate_outliers(data_samples, threshold=3):
-    outlier_indices = []  # 存储异常值的行号列表
-    for feature in data_samples:
-        feature_mean = data_samples[feature].mean()
-        feature_std = data_samples[feature].std()
-
-        standardized_residuals = (data_samples[feature] - feature_mean) / feature_std
-        outliers_mask = abs(standardized_residuals) > threshold
-        outliers_indices = data_samples[outliers_mask].index
-
-        # 将当前特征的异常值索引添加到异常值行号列表中
-        outlier_indices.extend(outliers_indices)
-
-    return outlier_indices
-
 
 def print_aligned_title(title):
     total_length = 80
@@ -49,23 +30,42 @@ def print_aligned_title(title):
 
 def moving_average_filter(data, window_size):
     """
-    滑动窗口滤波
+    moving average filter
     """
     filled_data = data.rolling(window=window_size, min_periods=1).mean()
     return filled_data
 
 
-def fir_filter(data, num_taps, cutoff_freq, window="hamming"):
+def find_outliers(data, exclude):
     """
-    有限冲激响应(FIR)滤波器
-    参数:
-        num_taps (int): 滤波器阶数（滤波器长度）。
-        cutoff_freq (float): 滤波器的截止频率。
-        window (str, optional): 要使用的窗口函数类型。默认为 'hamming'。
+    find outliers and add them to exclude
     """
-    filter_coeffs = firwin(num_taps, cutoff=cutoff_freq, window=window)
-    filtered_data = np.convolve(data, filter_coeffs, mode="same")
-    return filtered_data
+    means = data.mean()
+    stds = data.std()
+    outliers = data[((data - means) / stds > 1).any(axis=1)].index
+    exclude.union(outliers)
+
+
+def find_abnormal_data(data, exclude):
+    """
+    find abnormal data and add them to exclude
+    """
+    steering_condition = data["steering_percentage"] > 1
+    cmd_condition = data["throttle_percentage"] < 1 and data["brake_percentage"] < 1
+    speed_condition = data["speed_mps"] <= 0
+    if data.mode == 1:
+        mode_condition = data["throttle_percentage"] < 1
+    else:
+        mode_condition = data["brake_percentage"] < 1
+
+    conditions = steering_condition & cmd_condition & speed_condition & mode_condition
+    abnormal_data = data[conditions].index
+    exclude.union(abnormal_data)
+
+
+# TODO:shift_labels
+def shift_labels(data, shift):
+    return
 
 
 """
@@ -76,6 +76,7 @@ TODO: 数据集修改
 - 找出不满足油门速度等限制的数据,将其序号存储到数组exclude中
 - 添加数据集label平移功能,用于设定时间差
 - 在__getitem__处实现按sequencelength读取
+  - 若读取的数据是exclude中的元素就跳过这组
 """
 
 
@@ -83,8 +84,10 @@ TODO: 数据集修改
 class RecordDataset(Dataset):
     def __init__(self, csv_file, sequence_length):
         self.mode = 1  # 1 throttle; 2 brake
-        self.data = pd.read_csv(csv_file)
-        self.data = self.data[
+        self.window_size = 3
+        self.exclude = {}
+        self.original_data = pd.read_csv(csv_file)
+        self.original_data = self.original_data[
             [
                 "throttle_percentage",
                 "brake_percentage",
@@ -95,14 +98,17 @@ class RecordDataset(Dataset):
         ]
 
         # 滤波
-        for column in self.data_samples.columns:
-            self.data_samples.loc[:, column] = moving_average_filter(
-                self.data_samples[column], window_size=3
-            )
+        self.data_samples = self.original_data.apply(
+            lambda col: moving_average_filter(col, self.window_size)
+        )
 
-        self.data_samples_no_extraction = self.data_samples.copy()
+        # 标准化残差将异常值添加到exclude
+        find_outliers(self.data_samples, self.exclude)
+        # 找出异常数据添加到exclude
+        find_abnormal_data(self.data_samples, self.exclude)
+        # 平移label模拟延迟
+        shift_labels(self.data_samples)
 
-        # TODO: standardlized residual 去除 outliers
         self.sequence_length = sequence_length
         self.throttle_count = 0
         self.brake_count = 0
@@ -322,8 +328,8 @@ def visualize_data(data):
 
         # 平滑后的特征
         axs.plot(
-            data.data_samples_no_extraction.index,
-            data.data_samples_no_extraction[f"{feature}"],
+            data.original_data.index,
+            data.original_data[f"{feature}"],
             label=f"Smoothed {feature}",
             zorder=2,
         )
